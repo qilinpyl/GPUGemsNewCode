@@ -28,7 +28,6 @@
     struct a2v
     {
         float4 vertex : POSITION;
-        float3 normal: NORMAL;
 	    float2 texcoord : TEXCOORD0;
     };
 
@@ -62,7 +61,7 @@
         return pos;
     }
 	
-    float3 CaculateNormal(fixed A, fixed omiga, fixed phi, fixed t, fixed2 dir, float3 p)
+    float3 CaculateNormal(float A, float omiga, float phi, float t, float2 dir, float3 p)
     {
         dir = normalize(dir);
 
@@ -97,8 +96,8 @@
         normal += CaculateNormal(_A / 2, omiga / 4, 1, _Time.x * 40, float2(1, 2), o.worldPos);  
         normal += CaculateNormal(2 * _A, omiga / 2, 1, _Time.x * 20, float2(1, -1), o.worldPos);
  
-        v.vertex.xyz = mul(unity_WorldToObject, float4(o.worldPos + disPos, 1));
-        o.pos = UnityObjectToClipPos(v.vertex);
+        //v.vertex.xyz = mul(unity_WorldToObject, float4(o.worldPos + disPos, 1));
+        o.pos = UnityWorldToClipPos(float4(o.worldPos + disPos, 1));
 
         o.worldNormal = normalize(normal); 
         o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);

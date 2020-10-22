@@ -28,7 +28,6 @@
     struct a2v
     {
         float4 vertex : POSITION;
-        float3 normal: NORMAL;
 	    float2 texcoord : TEXCOORD0;
     };
 
@@ -53,22 +52,22 @@
     float CaculatePosY(float A, float omiga, float phi, float t, float2 dir, float3 p)
     {
         dir = normalize(dir);
-        float y = 2 * A * pow((sin(omiga * (p.x * dir.x + p.z * dir.y) + t * phi) + 1)/ 2, _K);
+        float y = 2 * A * pow((sin(omiga * (p.x * dir.x + p.z * dir.y) + t * phi) + 1) / 2, _K);
         
         return y;
     }
 	
-    float3 CaculateNormal(fixed A, fixed omiga, fixed phi, fixed t, fixed2 dir, float3 p)
+    float3 CaculateNormal(float A, float omiga, float phi, float t, float2 dir, float3 p)
     {
         dir = normalize(dir);
 
-        float sinPower = pow((sin(omiga * (p.x * dir.x + p.z * dir.y) + t * phi) + 1)/ 2, _K - 1);
-        float cosValue = cos(omiga * (p.x * dir.y + p.z * dir.y) + t * phi);
+        float sinPower = pow((sin(omiga * (p.x * dir.x + p.z * dir.y) + t * phi) + 1) / 2, _K - 1);
+        float cosValue = cos(omiga * (p.x * dir.x + p.z * dir.y) + t * phi);
         
         float normalX = A * dir.x * omiga * _K * sinPower * cosValue;
         float normalZ = A * dir.y * omiga * _K * sinPower * cosValue;
 
-        return float3(normalX, 1, normalZ);
+        return float3(-normalX, 0, -normalZ);
     }
 	
     v2f vert(a2v v)
@@ -90,9 +89,7 @@
         normal += CaculateNormal(_A / 2, omiga / 4, 1, _Time.x * 40, float2(1, 2), o.worldPos);  
         normal += CaculateNormal(2 * _A, omiga / 2, 1, _Time.x * 20, float2(1, -1), o.worldPos);
  
-        v.vertex.xyz = mul(unity_WorldToObject, float4(o.worldPos + disPos, 1));
-        o.pos = UnityObjectToClipPos(v.vertex);
-
+        o.pos = UnityWorldToClipPos(float4(o.worldPos + disPos, 1));
         o.worldNormal = normalize(normal); 
         o.uv = TRANSFORM_TEX(v.texcoord, _MainTex);
 

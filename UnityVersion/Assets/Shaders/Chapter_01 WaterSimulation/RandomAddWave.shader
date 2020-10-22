@@ -25,7 +25,6 @@
     struct a2v
     {
         float4 vertex : POSITION;
-        float3 normal: NORMAL;
 	    float2 texcoord : TEXCOORD0;
     };
 
@@ -55,7 +54,7 @@
         return y;
     }
 	
-    float3 CaculateNormal(fixed A, fixed omiga, fixed phi, fixed t, fixed2 dir, float3 p)
+    float3 CaculateNormal(float A, float omiga, float phi, float t, float2 dir, float3 p)
     {
         dir = normalize(dir);
 
@@ -64,7 +63,7 @@
         float normalX = A * dir.x * omiga * cosValue;
         float normalZ = A * dir.y * omiga * cosValue;
 
-        return float3(normalX, 1, normalZ);
+        return float3(-normalX, 0, -normalZ);
     }
 	
     v2f vert(a2v v)
