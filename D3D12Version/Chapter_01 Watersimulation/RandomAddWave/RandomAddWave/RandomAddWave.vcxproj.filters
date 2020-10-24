@@ -90,6 +90,9 @@
     <None Include="Shaders\Common.hlsl">
       <Filter>着色器</Filter>
     </None>
+    <None Include="Shaders\Wave.hlsl">
+      <Filter>着色器</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\Textures\grass.dds">
@@ -98,10 +101,5 @@
     <Image Include="..\..\..\Textures\water1.dds">
       <Filter>纹理贴图</Filter>
     </Image>
-  </ItemGroup>
-  <ItemGroup>
-    <FxCompile Include="Shaders\Wave.hlsl">
-      <Filter>着色器</Filter>
-    </FxCompile>
   </ItemGroup>
 </Project>
