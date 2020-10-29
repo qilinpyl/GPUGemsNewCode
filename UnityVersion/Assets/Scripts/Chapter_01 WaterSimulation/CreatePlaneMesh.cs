@@ -38,6 +38,7 @@ public class CreatePlaneMesh : MonoBehaviour
 
         Vector3[] vertices = new Vector3[vertexCount];
         Vector2[] uvs = new Vector2[vertexCount];
+        Vector3[] normals = new Vector3[vertexCount];
         for (int i = 0; i < subX; ++i)
         {
             float z = halfDepth - i * dz;
@@ -50,6 +51,9 @@ public class CreatePlaneMesh : MonoBehaviour
                 // UV 坐标对应.
                 uvs[i * subZ + j].x = j * du;
                 uvs[i * subZ + j].y = i * dv;
+
+                // 法线.
+                normals[i * subZ + j] = new Vector3(0, 1, 0);
             }
         }
 
@@ -72,6 +76,7 @@ public class CreatePlaneMesh : MonoBehaviour
 
         m_MeshFilter.mesh.vertices = vertices;
         m_MeshFilter.mesh.uv = uvs;
+        m_MeshFilter.mesh.normals = normals;
         m_MeshFilter.mesh.triangles = indices;
     }
 }
