@@ -1,0 +1,105 @@
+﻿using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+
+public class CreateHillMesh : MonoBehaviour
+{
+    private MeshFilter m_MeshFilter;
+
+    public float width;             // 平面宽度.
+    public float depth;             // 平面深度.
+    public int subX;                // X 轴细分次数.       
+    public int subZ;                // Z 轴方向细分次数.
+
+    void Start()
+    {
+        m_MeshFilter = gameObject.GetComponent<MeshFilter>();
+
+        CreateHill();
+    }
+
+    /// <summary>
+    /// 创建Mesh数据.
+    /// </summary>
+    private void CreateHill()
+    {
+        int vertexCount = subX * subZ;
+        int faceCount = (subX - 1) * (subZ - 1) * 2;
+
+        // 创建顶点.
+        float halfWidth = 0.5f * width;
+        float halfDepth = 0.5f * depth;
+
+        float dx = width / (subZ - 1);
+        float dz = depth / (subX - 1);
+
+        float du = 1.0f / (subZ - 1);
+        float dv = 1.0f / (subX - 1);
+
+        Vector3[] vertices = new Vector3[vertexCount];
+        Vector2[] uvs = new Vector2[vertexCount];
+        Vector3[] normals = new Vector3[vertexCount];
+
+        for (int i = 0; i < subX; ++i)
+        {
+            float z = halfDepth - i * dz;
+            for (int j = 0; j < subZ; ++j)
+            {
+                float x = -halfWidth + j * dx;
+
+                vertices[i * subZ + j] = new Vector3(x, GetHillsHeight(x, z), z);
+
+                // UV 坐标对应.
+                uvs[i * subZ + j].x = j * du;
+                uvs[i * subZ + j].y = i * dv;
+
+                // 法线.
+                normals[i * subZ + j] = GetHillsNormal(x, z);
+            }
+        }
+
+        // 创建索引.
+        int[] indices = new int[faceCount * 3];
+        int k = 0;
+        for (int i = 0; i < subX - 1; ++i)
+        {
+            for (int j = 0; j < subZ - 1; ++j)
+            {
+                indices[k++] = i * subZ + j;
+                indices[k++] = i * subZ + j + 1;
+                indices[k++] = (i + 1) * subZ + j;
+
+                indices[k++] = (i + 1) * subZ + j;
+                indices[k++] = i * subZ + j + 1;
+                indices[k++] = (i + 1) * subZ + j + 1;
+            }
+        }
+
+        m_MeshFilter.mesh.vertices = vertices;
+        m_MeshFilter.mesh.uv = uvs;
+        m_MeshFilter.mesh.normals = normals;
+        m_MeshFilter.mesh.triangles = indices;
+    }
+
+    /// <summary>
+    /// 高度计算.
+    /// </summary>
+    private float GetHillsHeight(float x, float z)
+    {
+        return 0.3f * (z * Mathf.Sin(0.1f * x) + x * Mathf.Cos(0.1f * z));
+    }
+
+    /// <summary>
+    /// 法线计算.
+    /// </summary>
+    private Vector3 GetHillsNormal(float x, float z)
+    {
+        Vector3 n = new Vector3(
+            -0.03f * z * Mathf.Cos(0.1f * x) - 0.3f * Mathf.Cos(0.1f * z),
+            1.0f,
+            -0.3f * Mathf.Sin(0.1f * x) + 0.03f * x * Mathf.Sin(0.1f * z));
+
+        Vector3 unitNormal = Vector3.Normalize(n);
+        return unitNormal;
+    }
+}
