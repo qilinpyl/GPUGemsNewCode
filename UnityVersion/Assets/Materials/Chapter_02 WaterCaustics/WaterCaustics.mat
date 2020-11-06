@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: WaterCaustics
-  m_Shader: {fileID: 4800000, guid: 697dd08fa08cbb045b47a23bb645a1ab, type: 3}
+  m_Shader: {fileID: 4800000, guid: 15ab545718d8d764696fe3559a7b7f11, type: 3}
   m_ShaderKeywords: 
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
