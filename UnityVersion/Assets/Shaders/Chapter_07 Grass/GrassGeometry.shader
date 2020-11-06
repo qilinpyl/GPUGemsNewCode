@@ -2,6 +2,7 @@
 {
     Properties
     {
+        _Color("Main Color", Color) = (1, 1, 1, 1)
         _MainTex("Albedo (RGB)", 2D) = "white" {}
         _AlphaTex("Alpha Clip Texture", 2D) = "white" {}
     }
@@ -26,6 +27,7 @@
             #include "UnityCG.cginc"
             #include "AutoLight.cginc"
 
+            fixed4 _Color;
             sampler2D _MainTex;
             float4 _MainTex_ST;
             sampler2D _AlphaTex;
@@ -33,21 +35,20 @@
             struct a2v
             {
                 float4 vertex : POSITION;
-                float3 normal : NORMAL;
                 float4 texcoord : TEXCOORD0;
             };
 
             struct v2g
             {
                 float4 vertex : POSITION;
-                float3 normal : NORMAL;
                 float2 texcoord : TEXCOORD0;                
             };
 
             struct g2f
             {
                 float4 pos : SV_POSITION;
-                float2 uv : TEXCOORD0;
+                float4 worldPos : TEXCOORD0;
+                float2 uv : TEXCOORD1;
             };
 
             v2g vert(a2v v)
@@ -55,7 +56,6 @@
                 v2g o;
 
                 o.vertex = v.vertex;
-                o.normal = v.normal;
                 o.texcoord.xy = TRANSFORM_TEX(v.texcoord, _MainTex);
 
                 return o;
@@ -86,38 +86,42 @@
                     0.0, 0.0, 1.0, root.z,
                     0.0, 0.0, 0.0, 1.0);
 
-                float2 windDir = fixed2(1, 1);
-				float2 wind = windDir * sin(_Time.x * UNITY_PI * 5 * (root.x * windDir.x + root.z * windDir.y) / 100);
-
+                // 拓展顶点, 生成一颗草.
                 g2f o[6];
                 for (uint i = 0; i < 10; i += 2)
                 {
                     float4 pos = points[0].vertex + float4(0, i / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    o[0].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[0].uv = float2(0.0, i / 10.0);
                     o[0].pos = UnityObjectToClipPos(pos);
 
                     pos = points[0].vertex + float4(0, (i + 2) / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    o[1].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[1].uv = float2(0.0, (i + 2) / 10.0);
                     o[1].pos = UnityObjectToClipPos(pos);                    
 
                     pos = points[0].vertex + float4(0.5, i / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    o[2].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[2].uv = float2(1.0, i / 10.0);                    
                     o[2].pos = UnityObjectToClipPos(pos);                    
 
                     o[3].pos = o[1].pos;
+                    o[3].worldPos = o[1].worldPos;
                     o[3].uv = o[1].uv;
 
                     o[4].pos = o[2].pos;
+                    o[4].worldPos = o[2].worldPos;
                     o[4].uv = o[2].uv;
 
                     pos = points[0].vertex + float4(0.5, (i + 2) / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    o[5].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[5].uv = float2(1.0, (i + 2) / 10.0);
                     o[5].pos = UnityObjectToClipPos(pos);                    
@@ -139,8 +143,14 @@
                 fixed4 alphaColor = tex2D(_AlphaTex, i.uv);
                 clip(alphaColor.a - 0.1);
 
-                fixed3 color = tex2D(_MainTex, i.uv).rgb;                
-                return fixed4(color, 1.0);
+                fixed3 ambient = UNITY_LIGHTMODEL_AMBIENT.rgb;
+
+                fixed3 worldNormal = fixed3(0, 1, 0);
+                fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
+
+                fixed3 diffuse = _LightColor0.rgb * _Color.rgb * tex2D(_MainTex, i.uv).rgb * max(0, dot(worldLightDir, worldNormal));
+            
+                return fixed4(ambient + diffuse, 1.0);
             }
 
             ENDCG
