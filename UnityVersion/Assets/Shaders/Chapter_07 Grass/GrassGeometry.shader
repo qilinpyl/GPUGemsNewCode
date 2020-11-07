@@ -9,6 +9,7 @@
 
     SubShader
     {
+        // 草地主体渲染.
         Pass
         {
             Tags { "LightMode" = "ForwardBase" "Queue" = "AlphaTest" "RenderType" = "Opaque" }
@@ -49,6 +50,7 @@
                 float4 pos : SV_POSITION;
                 float4 worldPos : TEXCOORD0;
                 float2 uv : TEXCOORD1;
+                SHADOW_COORDS(2)
             };
 
             v2g vert(a2v v)
@@ -90,41 +92,47 @@
                 g2f o[6];
                 for (uint i = 0; i < 10; i += 2)
                 {
-                    float4 pos = points[0].vertex + float4(0, i / 2, 0, 0) * 0.1;
+                    float4 pos = root + float4(0, i / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
                     o[0].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[0].uv = float2(0.0, i / 10.0);
                     o[0].pos = UnityObjectToClipPos(pos);
+                    TRANSFER_SHADOW(o[0]);
 
-                    pos = points[0].vertex + float4(0, (i + 2) / 2, 0, 0) * 0.1;
+                    pos = root + float4(0, (i + 2) / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
                     o[1].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[1].uv = float2(0.0, (i + 2) / 10.0);
-                    o[1].pos = UnityObjectToClipPos(pos);                    
+                    o[1].pos = UnityObjectToClipPos(pos);  
+                    TRANSFER_SHADOW(o[1]);                  
 
-                    pos = points[0].vertex + float4(0.5, i / 2, 0, 0) * 0.1;
+                    pos = root + float4(0.5, i / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
                     o[2].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[2].uv = float2(1.0, i / 10.0);                    
-                    o[2].pos = UnityObjectToClipPos(pos);                    
+                    o[2].pos = UnityObjectToClipPos(pos);  
+                    TRANSFER_SHADOW(o[2]);                  
 
                     o[3].pos = o[1].pos;
                     o[3].worldPos = o[1].worldPos;
                     o[3].uv = o[1].uv;
+                    TRANSFER_SHADOW(o[3]);
 
                     o[4].pos = o[2].pos;
                     o[4].worldPos = o[2].worldPos;
                     o[4].uv = o[2].uv;
+                    TRANSFER_SHADOW(o[4]);
 
-                    pos = points[0].vertex + float4(0.5, (i + 2) / 2, 0, 0) * 0.1;
+                    pos = root + float4(0.5, (i + 2) / 2, 0, 0) * 0.1;
                     pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
                     o[5].worldPos = mul(unity_ObjectToWorld, pos);
                     pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
                     o[5].uv = float2(1.0, (i + 2) / 10.0);
-                    o[5].pos = UnityObjectToClipPos(pos);                    
+                    o[5].pos = UnityObjectToClipPos(pos);   
+                    TRANSFER_SHADOW(o[5]);                 
 
                     triStream.Append(o[0]);
                     triStream.Append(o[1]);
@@ -148,13 +156,126 @@
                 fixed3 worldNormal = fixed3(0, 1, 0);
                 fixed3 worldLightDir = normalize(UnityWorldSpaceLightDir(i.worldPos));
 
+                fixed shadow = SHADOW_ATTENUATION(i);
                 fixed3 diffuse = _LightColor0.rgb * _Color.rgb * tex2D(_MainTex, i.uv).rgb * max(0, dot(worldLightDir, worldNormal));
             
-                return fixed4(ambient + diffuse, 1.0);
+                return fixed4(ambient + diffuse * shadow, 1.0);
             }
 
             ENDCG
         }
-    }
-    FallBack "Diffuse"
+
+        // 草地阴影渲染.
+        Pass
+        {
+            Tags { "LightMode" = "ShadowCaster" }
+
+            CGPROGRAM
+
+            #pragma vertex vert
+            #pragma geometry geom
+            #pragma fragment frag
+
+            #pragma multi_compile_shadowcaster
+            #pragma multi_compile_instancing
+            
+            #include "UnityCG.cginc"
+
+            struct g2f
+            {
+                V2F_SHADOW_CASTER;
+                UNITY_VERTEX_OUTPUT_STEREO
+            };
+
+            appdata_base vert(appdata_base v)
+            {
+                return v;
+            }
+
+            [maxvertexcount(30)]
+            void geom(point appdata_base points[1], inout TriangleStream<g2f> triStream)
+            {
+                float4 root = points[0].vertex;
+                fixed randomAngle = frac(sin(root.x) * 1234.5) * UNITY_HALF_PI;                
+
+                // 随机旋转.
+                float4x4 firstransfromMat = float4x4(
+                    1.0, 0.0, 0.0, -root.x,
+                    0.0, 1.0, 0.0, -root.y,
+                    0.0, 0.0, 1.0, -root.z,
+                    0.0, 0.0, 0.0, 1.0);
+
+                float4x4 transformationMatrix = float4x4(
+                    cos(randomAngle), 0, sin(randomAngle),0,
+                    0, 1, 0, 0,
+                    -sin(randomAngle), 0, cos(randomAngle),0,
+                    0, 0, 0, 1);
+
+                float4x4 lasttransformat = float4x4(
+                    1.0, 0.0, 0.0, root.x,
+                    0.0, 1.0, 0.0, root.y,
+                    0.0, 0.0, 1.0, root.z,
+                    0.0, 0.0, 0.0, 1.0);
+
+                // 拓展顶点, 生成一颗草.
+                g2f o[6];
+                for (uint i = 0; i < 10; i += 2)
+                {
+                    float4 pos = root + float4(0, i / 2, 0, 0) * 0.1;
+                    pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
+                    appdata_base v = points[0];
+                    v.vertex = pos;
+                    TRANSFER_SHADOW_CASTER_NORMALOFFSET(o[0]);
+
+                    pos = root + float4(0, (i + 2) / 2, 0, 0) * 0.1;
+                    pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
+                    v.vertex = pos;
+                    TRANSFER_SHADOW_CASTER_NORMALOFFSET(o[1]);
+
+                    pos = root + float4(0.5, i / 2, 0, 0) * 0.1;
+                    pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
+                    v.vertex = pos;
+                    TRANSFER_SHADOW_CASTER_NORMALOFFSET(o[2]);
+
+                    pos = root + float4(0.5, i / 2, 0, 0) * 0.1;
+                    pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
+                    v.vertex = pos;
+                    TRANSFER_SHADOW_CASTER_NORMALOFFSET(o[3]);
+
+                    pos = root + float4(0, (i + 2) / 2, 0, 0) * 0.1;
+                    pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
+                    v.vertex = pos;
+                    TRANSFER_SHADOW_CASTER_NORMALOFFSET(o[4]);
+
+                    pos = root + float4(0.5, (i + 2) / 2, 0, 0) * 0.1;
+                    pos.xz += float2(sin(_Time.x), sin(_Time.y)) * 0.2 * sin(pos.y);
+                    pos = mul(lasttransformat, mul(transformationMatrix, mul(firstransfromMat, pos)));
+                    v.vertex = pos;
+                    TRANSFER_SHADOW_CASTER_NORMALOFFSET(o[5]);
+
+                    triStream.Append(o[0]);
+                    triStream.Append(o[1]);
+                    triStream.Append(o[2]);
+
+                    triStream.Append(o[3]);
+                    triStream.Append(o[4]);
+                    triStream.Append(o[5]);
+
+                    triStream.RestartStrip();
+                }                
+            }
+
+            float4 frag(g2f i) : SV_TARGET
+            {
+                SHADOW_CASTER_FRAGMENT(i)
+            }
+
+            ENDCG
+        }
+	}
 }
