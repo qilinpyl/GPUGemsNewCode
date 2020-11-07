@@ -28,7 +28,7 @@ public class GrassVerts : MonoBehaviour
         {
             for (int j = 0; j < area; ++j)
             {
-                Vector3 pos = new Vector3(Random.Range(-area / 2, area / 2) * 0.05f, 0, Random.Range(-area / 2, area / 2) * 0.05f);
+                Vector3 pos = new Vector3(Random.Range(-area / 2.0F, area / 2.0f) * 0.05f, 0, Random.Range(-area / 2.0f, area / 2.0f) * 0.05f);
                 pos = new Vector3(pos.x, GetHillsHeight(pos.x, pos.z), pos.z);
                 verts[i * area + j].Set(pos.x, pos.y, pos.z);
                 indices[i * area + j] = i * area + j;
